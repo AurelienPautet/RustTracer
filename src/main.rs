@@ -3,14 +3,24 @@ use std::io::{ self, Write };
 pub mod vec3;
 pub mod color;
 pub mod ray;
+pub mod hittable;
+pub mod sphere;
 
+use crate::hittable::HittableList;
 use crate::ray::{ Ray, ray_color };
+use crate::sphere::Sphere;
 use crate::vec3::{ Vec3, Point3, Color };
 use crate::color::write_color;
 
+pub use std::f64::{ INFINITY, consts::PI };
+
+fn degrees_to_radians(degrees: f64) -> f64 {
+    (degrees * PI) / 180.0
+}
+
 fn main() {
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
-    const IMAGE_WIDTH: u16 = 1920;
+    const IMAGE_WIDTH: u16 = 400;
     const IMAGE_HEIGHT: u16 = if (((IMAGE_WIDTH as f64) / ASPECT_RATIO) as u16) < 1 {
         1
     } else {
@@ -34,6 +44,10 @@ fn main() {
 
     let PIXEL00_LOC: Point3 = VIEWPORT_UPPER_LEFT + 0.5 * (PIXEL_DELTA_U + PIXEL_DELTA_V);
 
+    let mut world = HittableList::new();
+    world.add(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5)));
+    world.add(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0)));
+
     println!("P3\n{} {}\n255", IMAGE_WIDTH, IMAGE_HEIGHT);
     for y in 0..IMAGE_HEIGHT {
         eprint!("\rScanlines remaining: {} ", IMAGE_HEIGHT - 1 - y);
@@ -43,7 +57,7 @@ fn main() {
                 PIXEL00_LOC + (x as f64) * PIXEL_DELTA_U + (y as f64) * PIXEL_DELTA_V;
             let ray_direction = pixel_center - CAMERA_CENTER;
             let ray = Ray::new(CAMERA_CENTER, ray_direction);
-            let pixel_color = ray_color(ray);
+            let pixel_color = ray_color(ray, &world);
             write_color(pixel_color);
         }
     }

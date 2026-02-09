@@ -1,5 +1,8 @@
-use crate::vec3::{ Color, Point3, Vec3, dot };
+use std::f64::INFINITY;
 
+use crate::{ hittable::{ HitRecord, Hittable, HittableList }, vec3::{ Color, Point3, Vec3, dot } };
+
+#[derive(Debug, Clone, Copy)]
 pub struct Ray(Point3, Vec3);
 
 impl Ray {
@@ -20,11 +23,9 @@ impl Ray {
     }
 }
 
-pub fn ray_color(ray: Ray) -> Color {
-    let t = hit_sphere(Point3::new(0.0, 0.0, -1.0), 0.5, &ray);
-    if t > 0.0 {
-        let n = (ray.at(t) - Point3::new(0.0, 0.0, -1.0)).to_unit_vector();
-        return 0.5 * Color::new(n.x() + 1.0, n.y() + 1.0, n.z() + 1.0);
+pub fn ray_color(ray: Ray, world: &HittableList) -> Color {
+    if let Some(rec) = world.hit(ray, 0.0, INFINITY) {
+        return 0.5 * (rec.normal + Color::new(1.0, 1.0, 1.0));
     }
     let unit_direction = ray.direction().to_unit_vector();
     let a = 0.5 * (unit_direction.y() + 1.0);
@@ -33,12 +34,12 @@ pub fn ray_color(ray: Ray) -> Color {
 
 pub fn hit_sphere(center: Point3, radius: f64, ray: &Ray) -> f64 {
     let oc = center - ray.origin();
-    let a = dot(&ray.direction(), &ray.direction());
-    let b = -2.0 * dot(&ray.direction(), &oc);
-    let c = dot(&oc, &oc) - radius * radius;
-    let discriminant = b * b - 4.0 * a * c;
+    let a = ray.direction().length_squared();
+    let h = dot(&ray.direction(), &oc);
+    let c = oc.length_squared() - radius * radius;
+    let discriminant = h * h - a * c;
     if discriminant < 0.0 {
         return -1.0;
     }
-    (-b - discriminant.sqrt()) / (2.0 * a)
+    h - discriminant.sqrt() / a
 }
