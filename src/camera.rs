@@ -32,6 +32,8 @@ pub struct Camera {
     max_depth: u16,
     yaw: f32,
     pitch: f32,
+    sample_ratio: u16,
+    is_moving: bool,
 }
 
 pub enum Direction {
@@ -42,7 +44,13 @@ pub enum Direction {
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f32, fov: f32, image_width: u16, sample_max: u16) -> Self {
+    pub fn new(
+        aspect_ratio: f32,
+        fov: f32,
+        image_width: u16,
+        sample_max: u16,
+        sample_ratio: u16
+    ) -> Self {
         const ZERO: Vec3 = Vec3::new(0.0, 0.0, 0.0);
 
         let mut res = Self {
@@ -61,10 +69,12 @@ impl Camera {
             pixel_delta_u: ZERO,
             pixel_delta_v: ZERO,
             sample_max,
-            sample_current: 1,
-            max_depth: 10,
+            sample_current: 0,
+            max_depth: 50,
             yaw: -90.0,
             pitch: 0.0,
+            sample_ratio,
+            is_moving: false,
         };
         res.update();
         res
@@ -74,7 +84,7 @@ impl Camera {
         self.aspect_ratio = (width as f32) / (height as f32);
         self.image_width = width;
         self.image_height = height;
-        self.sample_current = 1;
+        self.sample_current = 0;
         self.update();
     }
 
@@ -128,7 +138,8 @@ impl Camera {
                 self.center = self.center + speed * self.u;
             }
         }
-        self.sample_current = 1;
+        self.sample_current = 0;
+        self.is_moving = true;
         self.update();
     }
 
@@ -144,7 +155,8 @@ impl Camera {
             self.pitch = -89.0;
         }
 
-        self.sample_current = 1;
+        self.sample_current = 0;
+        self.is_moving = true;
         self.update();
     }
 
@@ -169,59 +181,13 @@ impl Camera {
         });
 
         window.set_target_fps(60);
-        print!("render starting");
         let mut fps = 0;
+        let mut full_res_count: u32 = 0;
         while window.is_open() && !window.is_key_down(Key::Escape) {
             let start = Instant::now();
+            let static_max_depth = self.max_depth;
+            self.is_moving = false;
 
-            let (new_w, new_h) = window.get_size();
-            if new_w != (self.image_width as usize) || new_h != (self.image_height as usize) {
-                self.resize(new_w as u16, new_h as u16);
-                buffer.resize(new_w * new_h, 0);
-                color_buffer.resize(new_w * new_h, Color::new(0.0, 0.0, 0.0));
-            }
-
-            if self.sample_current < self.sample_max {
-                print!(
-                    "\r self.sample_current:{} at a frame rate of: {}",
-                    self.sample_current,
-                    fps
-                );
-                io::stdout().flush().unwrap();
-                color_buffer
-                    .par_iter_mut()
-                    .enumerate()
-                    .for_each(|(i, pixel)| {
-                        let x = i % (self.image_width as usize);
-                        let y = i / (self.image_width as usize);
-
-                        let ray = self.get_ray(x as u16, y as u16);
-                        let pixel_color = Self::ray_color(ray, self.max_depth, world);
-                        if self.sample_current == 1 {
-                            *pixel = pixel_color;
-                        } else {
-                            *pixel = *pixel + pixel_color;
-                        }
-                    });
-
-                buffer
-                    .par_iter_mut()
-                    .enumerate()
-                    .for_each(|(i, pixel)| {
-                        let pixel_color = color_buffer[i] / (self.sample_current as f32);
-
-                        let intensity = Interval::new(0.0, 0.999);
-
-                        let r = (255.99 * intensity.clamp(pixel_color.x().sqrt())) as u32;
-                        let g = (255.99 * intensity.clamp(pixel_color.y().sqrt())) as u32;
-                        let b = (255.99 * intensity.clamp(pixel_color.z().sqrt())) as u32;
-
-                        *pixel = (r << 16) | (g << 8) | b;
-                    });
-            }
-            if self.sample_current <= self.sample_max {
-                self.sample_current += 1;
-            }
             if window.is_key_down(Key::W) {
                 self.move_camera(Direction::Forward);
             }
@@ -234,6 +200,20 @@ impl Camera {
             if window.is_key_down(Key::D) {
                 self.move_camera(Direction::Right);
             }
+            if window.is_key_down(Key::F) {
+                self.fov = self.fov + 1.0;
+                color_buffer.fill(Color::new(0.0, 0.0, 0.0));
+                full_res_count = 0;
+                self.sample_current = 0;
+                self.update();
+            }
+            if window.is_key_down(Key::V) {
+                self.fov = self.fov - 1.0;
+                color_buffer.fill(Color::new(0.0, 0.0, 0.0));
+                full_res_count = 0;
+                self.sample_current = 0;
+                self.update();
+            }
 
             if let Some((mouse_x, mouse_y)) = window.get_mouse_pos(minifb::MouseMode::Pass) {
                 if first_mouse {
@@ -244,13 +224,116 @@ impl Camera {
                 let x_offset = mouse_x - last_mouse_pos.0;
                 let y_offset = last_mouse_pos.1 - mouse_y;
                 last_mouse_pos = (mouse_x, mouse_y);
-
+                let min = 0.01;
                 if window.get_mouse_down(minifb::MouseButton::Left) {
-                    self.rotate_camera(x_offset, y_offset);
+                    if x_offset.abs() > min || y_offset.abs() > min {
+                        self.rotate_camera(x_offset, y_offset);
+                    }
                 }
             }
 
-            fps = start.elapsed().as_millis() / (1000 / 60);
+            let (new_w, new_h) = window.get_size();
+            if new_w != (self.image_width as usize) || new_h != (self.image_height as usize) {
+                self.resize(new_w as u16, new_h as u16);
+                buffer.resize(new_w * new_h, 0);
+                color_buffer.resize(new_w * new_h, Color::new(0.0, 0.0, 0.0));
+                color_buffer.fill(Color::new(0.0, 0.0, 0.0));
+                full_res_count = 0;
+            }
+
+            if self.is_moving {
+                color_buffer.fill(Color::new(0.0, 0.0, 0.0));
+                full_res_count = 0;
+                self.max_depth = 10;
+            } else {
+                if static_max_depth != self.max_depth {
+                    self.max_depth = static_max_depth;
+                }
+            }
+
+            if self.sample_current < self.sample_max {
+                print!("\r sample:{} fps:{}              ", self.sample_current, fps);
+                io::stdout().flush().unwrap();
+
+                let ratio = self.sample_ratio as usize;
+                let w = self.image_width as usize;
+                let h = self.image_height as usize;
+                let block_size: usize = (ratio >> (self.sample_current as usize)).max(1);
+
+                if block_size > 1 && full_res_count == 0 {
+                    let cols = (w + block_size - 1) / block_size;
+                    let rows = (h + block_size - 1) / block_size;
+                    let total_blocks = cols * rows;
+
+                    let block_colors: Vec<u32> = (0..total_blocks)
+                        .into_par_iter()
+                        .map(|bi| {
+                            let bx = bi % cols;
+                            let by = bi / cols;
+                            let px = (bx * block_size + block_size / 2).min(w - 1);
+                            let py = (by * block_size + block_size / 2).min(h - 1);
+
+                            let ray = self.get_ray(px as u16, py as u16);
+                            let pixel_color = Self::ray_color(ray, self.max_depth, world);
+
+                            let intensity = Interval::new(0.0, 0.999);
+                            let r = (255.99 * intensity.clamp(pixel_color.x().sqrt())) as u32;
+                            let g = (255.99 * intensity.clamp(pixel_color.y().sqrt())) as u32;
+                            let b = (255.99 * intensity.clamp(pixel_color.z().sqrt())) as u32;
+                            (r << 16) | (g << 8) | b
+                        })
+                        .collect();
+
+                    for bi in 0..total_blocks {
+                        let bx = bi % cols;
+                        let by = bi / cols;
+                        let color = block_colors[bi];
+                        for dy in 0..block_size {
+                            for dx in 0..block_size {
+                                let px = bx * block_size + dx;
+                                let py = by * block_size + dy;
+                                if px < w && py < h {
+                                    buffer[py * w + px] = color;
+                                }
+                            }
+                        }
+                    }
+
+                    if !self.is_moving {
+                        self.sample_current += 1;
+                    }
+                } else {
+                    color_buffer
+                        .par_iter_mut()
+                        .enumerate()
+                        .for_each(|(i, pixel)| {
+                            let x = i % w;
+                            let y = i / w;
+                            let ray = self.get_ray(x as u16, y as u16);
+                            let pixel_color = Self::ray_color(ray, self.max_depth, world);
+                            *pixel = *pixel + pixel_color;
+                        });
+
+                    full_res_count += 1;
+
+                    buffer
+                        .par_iter_mut()
+                        .enumerate()
+                        .for_each(|(i, pixel)| {
+                            let pixel_color = color_buffer[i] / (full_res_count as f32);
+                            let intensity = Interval::new(0.0, 0.999);
+                            let r = (255.99 * intensity.clamp(pixel_color.x().sqrt())) as u32;
+                            let g = (255.99 * intensity.clamp(pixel_color.y().sqrt())) as u32;
+                            let b = (255.99 * intensity.clamp(pixel_color.z().sqrt())) as u32;
+                            *pixel = (r << 16) | (g << 8) | b;
+                        });
+
+                    self.sample_current += 1;
+                }
+            }
+
+            let elapsed_ms = start.elapsed().as_millis();
+            fps = if elapsed_ms > 0 { 1000 / (elapsed_ms as u128) } else { 0 };
             window.update_with_buffer(&buffer, new_w, new_h).unwrap();
         }
     }
