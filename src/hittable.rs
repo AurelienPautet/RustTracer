@@ -1,18 +1,27 @@
-use crate::{ interval::Interval, ray::Ray, vec3::{ Point3, Vec3, dot } };
+use std::sync::Arc;
+
+use crate::{ interval::Interval, material::Material, ray::Ray, vec3::{ Point3, Vec3, dot } };
 
 #[derive(Clone)]
-pub struct HitRecord {
+pub struct HitRecord<'a> {
     pub p: Point3,
     pub normal: Vec3,
+    pub mat: &'a Arc<dyn Material + Send + Sync>,
     pub t: f64,
     pub front_face: bool,
 }
 
-impl HitRecord {
-    pub fn new(p: Point3, t: f64, ray: &Ray, outward_normal: Vec3) -> Self {
+impl<'a> HitRecord<'a> {
+    pub fn new(
+        p: Point3,
+        t: f64,
+        ray: &Ray,
+        mat: &'a Arc<dyn Material + Send + Sync>,
+        outward_normal: Vec3
+    ) -> Self {
         let front_face = dot(&ray.direction(), &outward_normal) < 0.0;
         let normal = if front_face { outward_normal } else { -outward_normal };
-        Self { p, normal, t, front_face }
+        Self { p, normal, t, mat, front_face }
     }
 }
 

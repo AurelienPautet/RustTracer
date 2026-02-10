@@ -59,6 +59,15 @@ impl Vec3 {
     pub fn to_unit_vector(self) -> Self {
         self / self.length()
     }
+
+    pub fn near_zero(&self) -> bool {
+        let s = 1e-8;
+        self.0.abs() < s && self.1.abs() < s && self.2.abs() < s
+    }
+
+    pub fn reflect(self, n: Self) -> Self {
+        self - 2.0 * dot(&self, &n) * n
+    }
 }
 
 pub fn dot(v1: &Vec3, v2: &Vec3) -> f64 {

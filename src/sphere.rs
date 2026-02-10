@@ -1,13 +1,21 @@
-use crate::{ hittable::{ HitRecord, Hittable }, interval::Interval, vec3::{ Point3, dot } };
+use std::sync::Arc;
+
+use crate::{
+    hittable::{ HitRecord, Hittable },
+    interval::Interval,
+    material::Material,
+    vec3::{ Point3, dot },
+};
 
 pub struct Sphere {
     center: Point3,
     radius: f64,
+    mat: Arc<dyn Material + Send + Sync>,
 }
 
 impl Sphere {
-    pub fn new(center: Point3, radius: f64) -> Self {
-        Sphere { center, radius: radius.max(0.0) }
+    pub fn new(center: Point3, radius: f64, mat: Arc<dyn Material + Send + Sync>) -> Self {
+        Sphere { center, radius: radius.max(0.0), mat }
     }
 }
 
@@ -34,6 +42,6 @@ impl Hittable for Sphere {
         let t = root;
         let p = ray.at(t);
         let outward_normal = (p - self.center) / self.radius;
-        Some(HitRecord::new(p, t, &ray, outward_normal))
+        Some(HitRecord::new(p, t, &ray, &self.mat, outward_normal))
     }
 }

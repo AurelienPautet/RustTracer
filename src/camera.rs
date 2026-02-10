@@ -206,8 +206,8 @@ impl Camera {
         }
 
         if let Some(rec) = world.hit(ray, Interval::new(0.001, INFINITY)) {
-            let direction = Vec3::random_on_hemisphere(rec.normal);
-            return 0.5 * Self::ray_color(Ray::new(rec.p, direction), max_depth - 1, world);
+            let (scattered, attenuation) = rec.mat.scatter(ray, &rec);
+            return attenuation * Self::ray_color(scattered, max_depth - 1, world);
         }
         let unit_direction = ray.direction().to_unit_vector();
         let a = 0.5 * (unit_direction.y() + 1.0);
