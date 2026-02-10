@@ -21,11 +21,11 @@ fn _degrees_to_radians(degrees: f32) -> f32 {
     (degrees * PI) / 180.0
 }
 
-pub fn random_f64() -> f32 {
+pub fn random_f32() -> f32 {
     rand::random()
 }
 
-pub fn random_f64_range(min: f32, max: f32) -> f32 {
+pub fn random_f32_range(min: f32, max: f32) -> f32 {
     rand::random_range(min..=max)
 }
 fn main() {
@@ -47,9 +47,11 @@ fn main() {
 
     let material_front: Arc<dyn Material + Send + Sync> = Arc::new(Dielectric {
         refraction_index: 1.5,
+        frostedness: 0.05,
     });
     let material_air_buble: Arc<dyn Material + Send + Sync> = Arc::new(Dielectric {
         refraction_index: 1.0 / 1.33,
+        frostedness: 0.0,
     });
 
     world.add(
@@ -64,6 +66,6 @@ fn main() {
     world.add(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, Arc::clone(&material_rigth))));
     world.add(Box::new(Sphere::new(Point3::new(0.0, 0.0, 3.5), 0.4, Arc::clone(&material_front))));
 
-    let cam = Camera::new(16.0 / 9.0, 600, 100);
+    let cam = Camera::new(16.0 / 9.0, 90.0, 600, 500);
     cam.render(&world);
 }

@@ -1,4 +1,4 @@
-use crate::{ hittable::HitRecord, ray::Ray, vec3::{ Color, Vec3, dot } };
+use crate::{ hittable::HitRecord, random_f32, ray::Ray, vec3::{ Color, Vec3, dot } };
 
 pub trait Material {
     fn scatter(&self, r_in: Ray, rec: &HitRecord) -> Option<(Ray, Color)>;
@@ -37,6 +37,7 @@ impl Material for Metal {
 
 pub struct Dielectric {
     pub refraction_index: f32,
+    pub frostedness: f32,
 }
 
 impl Material for Dielectric {
@@ -49,14 +50,24 @@ impl Material for Dielectric {
 
         let direction: Vec3;
 
-        if ri * sin_theta > 1.0 {
+        if ri * sin_theta > 1.0 || self.reflectance(cos_theta) > random_f32() {
             direction = unit_direction.reflect(rec.normal);
         } else {
             direction = unit_direction.refract(rec.normal, ri);
         }
 
+        let direction = direction + self.frostedness * Vec3::random_unit_vector();
+
         let scattered: Ray = Ray::new(rec.p, direction);
 
         Some((scattered, Color::new(1.0, 1.0, 1.0)))
+    }
+}
+
+impl Dielectric {
+    fn reflectance(&self, cosine: f32) -> f32 {
+        let r0 = (1.0 - self.refraction_index) / (1.0 + self.refraction_index);
+        let r0 = r0 * r0;
+        r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
     }
 }

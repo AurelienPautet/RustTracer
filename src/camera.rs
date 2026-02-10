@@ -3,7 +3,8 @@ use std::io::{ self, Write };
 use minifb::{ Key, Window, WindowOptions };
 use rayon::prelude::*;
 use std::time::Instant;
-use crate::random_f64;
+use crate::vec3::cross;
+use crate::{ _degrees_to_radians, random_f32 };
 use crate::{
     hittable::{ Hittable, HittableList },
     interval::Interval,
@@ -13,6 +14,13 @@ use crate::{
 
 pub struct Camera {
     aspect_ratio: f32,
+    fov: f32,
+    lookfrom: Point3,
+    focal_length: f32,
+    vup: Vec3,
+    u: Vec3,
+    v: Vec3,
+    w: Vec3,
     image_width: u16,
     image_height: u16,
     center: Point3,
@@ -22,6 +30,8 @@ pub struct Camera {
     sample_max: u16,
     sample_current: u16,
     max_depth: u16,
+    yaw: f32,
+    pitch: f32,
 }
 
 pub enum Direction {
@@ -32,36 +42,32 @@ pub enum Direction {
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f32, image_width: u16, sample_max: u16) -> Self {
-        const VIEWPORT_HEIGHT: f32 = 2.0;
-        const FOCAL_LENGTH: f32 = 1.0;
+    pub fn new(aspect_ratio: f32, fov: f32, image_width: u16, sample_max: u16) -> Self {
+        const ZERO: Vec3 = Vec3::new(0.0, 0.0, 0.0);
 
-        let image_height = ((image_width as f32) / aspect_ratio).max(1.0) as u16;
-        let viewport_width = (VIEWPORT_HEIGHT * (image_width as f32)) / (image_height as f32);
-
-        let center = Point3::new(0.0, 0.0, 0.0);
-        let viewport_u = Vec3::new(viewport_width, 0.0, 0.0);
-        let viewport_v = Vec3::new(0.0, -VIEWPORT_HEIGHT, 0.0);
-
-        let pixel_delta_u = viewport_u / (image_width as f32);
-        let pixel_delta_v = viewport_v / (image_height as f32);
-
-        let viewport_upper_left =
-            center - Vec3::new(0.0, 0.0, FOCAL_LENGTH) - viewport_u / 2.0 - viewport_v / 2.0;
-        let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
-
-        Self {
+        let mut res = Self {
             aspect_ratio,
+            fov,
+            focal_length: 1.0,
+            lookfrom: ZERO,
+            vup: Vec3::new(0.0, 1.0, 0.0),
+            u: Vec3::new(1.0, 0.0, 0.0),
+            v: Vec3::new(0.0, 1.0, 0.0),
+            w: Vec3::new(0.0, 0.0, 1.0),
             image_width,
-            image_height,
-            center,
-            pixel00_loc,
-            pixel_delta_u,
-            pixel_delta_v,
+            image_height: 0,
+            center: Vec3::new(0.0, 1.0, 3.0),
+            pixel00_loc: ZERO,
+            pixel_delta_u: ZERO,
+            pixel_delta_v: ZERO,
             sample_max,
             sample_current: 1,
             max_depth: 10,
-        }
+            yaw: -90.0,
+            pitch: 0.0,
+        };
+        res.update();
+        res
     }
 
     pub fn resize(&mut self, width: u16, height: u16) {
@@ -73,21 +79,36 @@ impl Camera {
     }
 
     pub fn update(&mut self) {
-        const VIEWPORT_HEIGHT: f32 = 2.0;
-        const FOCAL_LENGTH: f32 = 1.0;
+        let radius = self.yaw.to_radians();
+        let pitch = self.pitch.to_radians();
 
+        let front = Vec3::new(
+            radius.cos() * pitch.cos(),
+            pitch.sin(),
+            radius.sin() * pitch.cos()
+        ).to_unit_vector();
+
+        self.w = -front;
+        self.u = cross(&self.vup, &self.w).to_unit_vector();
+        self.v = cross(&self.w, &self.u);
+
+        self.lookfrom = self.center;
+
+        let theta = _degrees_to_radians(self.fov);
+        let h = (theta / 2.0).tan();
+        let viewport_heigth = 2.0 * h * self.focal_length;
         self.image_height = ((self.image_width as f32) / self.aspect_ratio.max(1.0)) as u16;
         let viewport_width =
-            (VIEWPORT_HEIGHT * (self.image_width as f32)) / (self.image_height as f32);
+            (viewport_heigth * (self.image_width as f32)) / (self.image_height as f32);
 
-        let viewport_u = Vec3::new(viewport_width, 0.0, 0.0);
-        let viewport_v = Vec3::new(0.0, -VIEWPORT_HEIGHT, 0.0);
+        let viewport_u = viewport_width * self.u;
+        let viewport_v = viewport_heigth * -self.v;
 
         self.pixel_delta_u = viewport_u / (self.image_width as f32);
         self.pixel_delta_v = viewport_v / (self.image_height as f32);
 
         let viewport_upper_left =
-            self.center - Vec3::new(0.0, 0.0, FOCAL_LENGTH) - viewport_u / 2.0 - viewport_v / 2.0;
+            self.center - self.focal_length * self.w - viewport_u / 2.0 - viewport_v / 2.0;
         self.pixel00_loc = viewport_upper_left + 0.5 * (self.pixel_delta_u + self.pixel_delta_v);
     }
 
@@ -95,26 +116,45 @@ impl Camera {
         let speed = 0.1;
         match dir {
             Direction::Backward => {
-                self.center = self.center + Vec3::new(0.0, 0.0, speed);
+                self.center = self.center + speed * self.w;
             }
             Direction::Forward => {
-                self.center = self.center + Vec3::new(0.0, 0.0, -speed);
+                self.center = self.center + -speed * self.w;
             }
             Direction::Left => {
-                self.center = self.center + Vec3::new(-speed, 0.0, 0.0);
+                self.center = self.center + -speed * self.u;
             }
             Direction::Right => {
-                self.center = self.center + Vec3::new(speed, 0.0, 0.0);
+                self.center = self.center + speed * self.u;
             }
         }
         self.sample_current = 1;
         self.update();
     }
 
+    pub fn rotate_camera(&mut self, dx: f32, dy: f32) {
+        let sensitivity = 0.3;
+        self.yaw += dx * sensitivity;
+        self.pitch += dy * sensitivity;
+
+        if self.pitch > 89.0 {
+            self.pitch = 89.0;
+        }
+        if self.pitch < -89.0 {
+            self.pitch = -89.0;
+        }
+
+        self.sample_current = 1;
+        self.update();
+    }
+
     pub fn render(mut self, world: &HittableList) {
         let mut color_buffer: Vec<Color> =
-            vec![Color::new(1.0, 1.0, 1.0); self.image_width as usize * self.image_height as usize];
+            vec![Color::new(0.0, 0.0, 0.0); self.image_width as usize * self.image_height as usize];
         let mut buffer: Vec<u32> = vec![0; self.image_width as usize * self.image_height as usize];
+
+        let mut last_mouse_pos: (f32, f32) = (0.0, 0.0);
+        let mut first_mouse = true;
 
         let mut window = Window::new(
             "RustTracer",
@@ -138,7 +178,7 @@ impl Camera {
             if new_w != (self.image_width as usize) || new_h != (self.image_height as usize) {
                 self.resize(new_w as u16, new_h as u16);
                 buffer.resize(new_w * new_h, 0);
-                color_buffer.resize(new_w * new_h, Color::new(1.0, 1.0, 1.0));
+                color_buffer.resize(new_w * new_h, Color::new(0.0, 0.0, 0.0));
             }
 
             if self.sample_current < self.sample_max {
@@ -195,6 +235,21 @@ impl Camera {
                 self.move_camera(Direction::Right);
             }
 
+            if let Some((mouse_x, mouse_y)) = window.get_mouse_pos(minifb::MouseMode::Pass) {
+                if first_mouse {
+                    last_mouse_pos = (mouse_x, mouse_y);
+                    first_mouse = false;
+                }
+
+                let x_offset = mouse_x - last_mouse_pos.0;
+                let y_offset = last_mouse_pos.1 - mouse_y;
+                last_mouse_pos = (mouse_x, mouse_y);
+
+                if window.get_mouse_down(minifb::MouseButton::Left) {
+                    self.rotate_camera(x_offset, y_offset);
+                }
+            }
+
             fps = start.elapsed().as_millis() / (1000 / 60);
             window.update_with_buffer(&buffer, new_w, new_h).unwrap();
         }
@@ -228,6 +283,6 @@ impl Camera {
     }
 
     fn sample_square(&self) -> Vec3 {
-        Vec3::new(random_f64() - 0.5, random_f64() - 0.5, 0.0)
+        Vec3::new(random_f32() - 0.5, random_f32() - 0.5, 0.0)
     }
 }

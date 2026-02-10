@@ -1,6 +1,6 @@
 use std::ops::{ Neg, Sub, Add, Mul, Div };
 
-use crate::{ random_f64, random_f64_range };
+use crate::{ random_f32, random_f32_range };
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vec3(f32, f32, f32);
@@ -13,11 +13,11 @@ impl Vec3 {
     }
 
     pub fn random() -> Self {
-        Self(random_f64(), random_f64(), random_f64())
+        Self(random_f32(), random_f32(), random_f32())
     }
 
     pub fn random_range(min: f32, max: f32) -> Self {
-        Self(random_f64_range(min, max), random_f64_range(min, max), random_f64_range(min, max))
+        Self(random_f32_range(min, max), random_f32_range(min, max), random_f32_range(min, max))
     }
 
     pub fn random_unit_vector() -> Self {
