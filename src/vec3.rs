@@ -1,13 +1,41 @@
 use std::ops::{ Neg, Sub, Add, Mul, Div };
 
+use crate::{ random_f64, random_f64_range };
+
 #[derive(Debug, Clone, Copy)]
 pub struct Vec3(f64, f64, f64);
 pub type Color = Vec3;
 pub type Point3 = Vec3;
 
 impl Vec3 {
-    pub const fn new(x: f64, y: f64, z: f64) -> Vec3 {
-        Vec3(x, y, z)
+    pub const fn new(x: f64, y: f64, z: f64) -> Self {
+        Self(x, y, z)
+    }
+
+    pub fn random() -> Self {
+        Self(random_f64(), random_f64(), random_f64())
+    }
+
+    pub fn random_range(min: f64, max: f64) -> Self {
+        Self(random_f64_range(min, max), random_f64_range(min, max), random_f64_range(min, max))
+    }
+
+    pub fn random_unit_vector() -> Self {
+        loop {
+            let vec = Self::random_range(-1.0, 1.0);
+            let lensq = vec.length_squared();
+            if 1e-160 < lensq && lensq <= 1.0 {
+                return vec / lensq;
+            }
+        }
+    }
+
+    pub fn random_on_hemisphere(normal: Self) -> Self {
+        let on_unit_sphere = Self::random_unit_vector();
+        if dot(&on_unit_sphere, &normal) > 0.0 {
+            return on_unit_sphere;
+        }
+        -on_unit_sphere
     }
 
     pub fn x(&self) -> f64 {

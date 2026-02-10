@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 rand = "0.8.5"
+minifb = "0.28"
+rayon = "1.11.0"
