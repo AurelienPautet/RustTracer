@@ -20,7 +20,7 @@ impl Material for Lambertian {
 
 pub struct Metal {
     pub albedo: Color,
-    pub fuzziness: f64,
+    pub fuzziness: f32,
 }
 
 impl Material for Metal {
@@ -36,7 +36,7 @@ impl Material for Metal {
 }
 
 pub struct Dielectric {
-    pub refraction_index: f64,
+    pub refraction_index: f32,
 }
 
 impl Material for Dielectric {

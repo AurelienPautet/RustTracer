@@ -16,7 +16,7 @@ impl Ray {
         self.1
     }
 
-    pub fn at(&self, t: f64) -> Point3 {
+    pub fn at(&self, t: f32) -> Point3 {
         self.origin() + self.direction() * t
     }
 }

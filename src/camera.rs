@@ -1,4 +1,4 @@
-use std::f64::INFINITY;
+use std::f32::INFINITY;
 use std::io::{ self, Write };
 use minifb::{ Key, Window, WindowOptions };
 use rayon::prelude::*;
@@ -12,7 +12,7 @@ use crate::{
 };
 
 pub struct Camera {
-    aspect_ratio: f64,
+    aspect_ratio: f32,
     image_width: u16,
     image_height: u16,
     center: Point3,
@@ -32,19 +32,19 @@ pub enum Direction {
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f64, image_width: u16, sample_max: u16) -> Self {
-        const VIEWPORT_HEIGHT: f64 = 2.0;
-        const FOCAL_LENGTH: f64 = 1.0;
+    pub fn new(aspect_ratio: f32, image_width: u16, sample_max: u16) -> Self {
+        const VIEWPORT_HEIGHT: f32 = 2.0;
+        const FOCAL_LENGTH: f32 = 1.0;
 
-        let image_height = ((image_width as f64) / aspect_ratio).max(1.0) as u16;
-        let viewport_width = (VIEWPORT_HEIGHT * (image_width as f64)) / (image_height as f64);
+        let image_height = ((image_width as f32) / aspect_ratio).max(1.0) as u16;
+        let viewport_width = (VIEWPORT_HEIGHT * (image_width as f32)) / (image_height as f32);
 
         let center = Point3::new(0.0, 0.0, 0.0);
         let viewport_u = Vec3::new(viewport_width, 0.0, 0.0);
         let viewport_v = Vec3::new(0.0, -VIEWPORT_HEIGHT, 0.0);
 
-        let pixel_delta_u = viewport_u / (image_width as f64);
-        let pixel_delta_v = viewport_v / (image_height as f64);
+        let pixel_delta_u = viewport_u / (image_width as f32);
+        let pixel_delta_v = viewport_v / (image_height as f32);
 
         let viewport_upper_left =
             center - Vec3::new(0.0, 0.0, FOCAL_LENGTH) - viewport_u / 2.0 - viewport_v / 2.0;
@@ -65,7 +65,7 @@ impl Camera {
     }
 
     pub fn resize(&mut self, width: u16, height: u16) {
-        self.aspect_ratio = (width as f64) / (height as f64);
+        self.aspect_ratio = (width as f32) / (height as f32);
         self.image_width = width;
         self.image_height = height;
         self.sample_current = 1;
@@ -73,18 +73,18 @@ impl Camera {
     }
 
     pub fn update(&mut self) {
-        const VIEWPORT_HEIGHT: f64 = 2.0;
-        const FOCAL_LENGTH: f64 = 1.0;
+        const VIEWPORT_HEIGHT: f32 = 2.0;
+        const FOCAL_LENGTH: f32 = 1.0;
 
-        self.image_height = ((self.image_width as f64) / self.aspect_ratio.max(1.0)) as u16;
+        self.image_height = ((self.image_width as f32) / self.aspect_ratio.max(1.0)) as u16;
         let viewport_width =
-            (VIEWPORT_HEIGHT * (self.image_width as f64)) / (self.image_height as f64);
+            (VIEWPORT_HEIGHT * (self.image_width as f32)) / (self.image_height as f32);
 
         let viewport_u = Vec3::new(viewport_width, 0.0, 0.0);
         let viewport_v = Vec3::new(0.0, -VIEWPORT_HEIGHT, 0.0);
 
-        self.pixel_delta_u = viewport_u / (self.image_width as f64);
-        self.pixel_delta_v = viewport_v / (self.image_height as f64);
+        self.pixel_delta_u = viewport_u / (self.image_width as f32);
+        self.pixel_delta_v = viewport_v / (self.image_height as f32);
 
         let viewport_upper_left =
             self.center - Vec3::new(0.0, 0.0, FOCAL_LENGTH) - viewport_u / 2.0 - viewport_v / 2.0;
@@ -168,7 +168,7 @@ impl Camera {
                     .par_iter_mut()
                     .enumerate()
                     .for_each(|(i, pixel)| {
-                        let pixel_color = color_buffer[i] / (self.sample_current as f64);
+                        let pixel_color = color_buffer[i] / (self.sample_current as f32);
 
                         let intensity = Interval::new(0.0, 0.999);
 
@@ -221,8 +221,8 @@ impl Camera {
 
         let pixel_center =
             self.pixel00_loc +
-            ((x as f64) + offset.x()) * self.pixel_delta_u +
-            ((y as f64) + offset.y()) * self.pixel_delta_v;
+            ((x as f32) + offset.x()) * self.pixel_delta_u +
+            ((y as f32) + offset.y()) * self.pixel_delta_v;
         let ray_direction = pixel_center - self.center;
         Ray::new(self.center, ray_direction)
     }

@@ -1,9 +1,9 @@
-use std::f64::{ NEG_INFINITY, INFINITY };
+use std::f32::{ NEG_INFINITY, INFINITY };
 
 #[derive(Debug, Clone, Copy)]
 pub struct Interval {
-    pub min: f64,
-    pub max: f64,
+    pub min: f32,
+    pub max: f32,
 }
 
 impl Interval {
@@ -15,23 +15,23 @@ impl Interval {
         Self { min: NEG_INFINITY, max: INFINITY }
     }
 
-    pub fn new(min: f64, max: f64) -> Self {
+    pub fn new(min: f32, max: f32) -> Self {
         Self { min, max }
     }
 
-    pub fn size(&self) -> f64 {
+    pub fn size(&self) -> f32 {
         self.max - self.min
     }
 
-    pub fn contains(&self, val: f64) -> bool {
+    pub fn contains(&self, val: f32) -> bool {
         self.min <= val && val <= self.max
     }
 
-    pub fn surrounds(&self, val: f64) -> bool {
+    pub fn surrounds(&self, val: f32) -> bool {
         self.min < val && val < self.max
     }
 
-    pub fn clamp(&self, x: f64) -> f64 {
+    pub fn clamp(&self, x: f32) -> f32 {
         x.clamp(self.min, self.max)
     }
 }

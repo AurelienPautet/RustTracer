@@ -3,12 +3,12 @@ use std::ops::{ Neg, Sub, Add, Mul, Div };
 use crate::{ random_f64, random_f64_range };
 
 #[derive(Debug, Clone, Copy)]
-pub struct Vec3(f64, f64, f64);
+pub struct Vec3(f32, f32, f32);
 pub type Color = Vec3;
 pub type Point3 = Vec3;
 
 impl Vec3 {
-    pub const fn new(x: f64, y: f64, z: f64) -> Self {
+    pub const fn new(x: f32, y: f32, z: f32) -> Self {
         Self(x, y, z)
     }
 
@@ -16,7 +16,7 @@ impl Vec3 {
         Self(random_f64(), random_f64(), random_f64())
     }
 
-    pub fn random_range(min: f64, max: f64) -> Self {
+    pub fn random_range(min: f32, max: f32) -> Self {
         Self(random_f64_range(min, max), random_f64_range(min, max), random_f64_range(min, max))
     }
 
@@ -25,7 +25,7 @@ impl Vec3 {
             let vec = Self::random_range(-1.0, 1.0);
             let lensq = vec.length_squared();
             if 1e-160 < lensq && lensq <= 1.0 {
-                return vec / lensq;
+                return vec / lensq.sqrt();
             }
         }
     }
@@ -38,21 +38,21 @@ impl Vec3 {
         -on_unit_sphere
     }
 
-    pub fn x(&self) -> f64 {
+    pub fn x(&self) -> f32 {
         self.0
     }
-    pub fn y(&self) -> f64 {
+    pub fn y(&self) -> f32 {
         self.1
     }
-    pub fn z(&self) -> f64 {
+    pub fn z(&self) -> f32 {
         self.2
     }
 
-    pub fn length(&self) -> f64 {
+    pub fn length(&self) -> f32 {
         self.length_squared().sqrt()
     }
 
-    pub fn length_squared(&self) -> f64 {
+    pub fn length_squared(&self) -> f32 {
         self.x() * self.x() + self.y() * self.y() + self.z() * self.z()
     }
 
@@ -69,7 +69,7 @@ impl Vec3 {
         self - 2.0 * dot(&self, &n) * n
     }
 
-    pub fn refract(self, n: Self, etai_over_etat: f64) -> Self {
+    pub fn refract(self, n: Self, etai_over_etat: f32) -> Self {
         let cos_theta = dot(&-self, &n).min(1.0);
         let r_out_perp = etai_over_etat * (self + cos_theta * n);
         let r_out_parallel = -(1.0 - r_out_perp.length_squared()).abs().sqrt() * n;
@@ -77,7 +77,7 @@ impl Vec3 {
     }
 }
 
-pub fn dot(v1: &Vec3, v2: &Vec3) -> f64 {
+pub fn dot(v1: &Vec3, v2: &Vec3) -> f32 {
     v1.x() * v2.x() + v1.y() * v2.y() + v1.z() * v2.z()
 }
 
@@ -116,14 +116,14 @@ impl Mul for Vec3 {
     }
 }
 
-impl Mul<f64> for Vec3 {
+impl Mul<f32> for Vec3 {
     type Output = Vec3;
-    fn mul(self, constant: f64) -> Self::Output {
+    fn mul(self, constant: f32) -> Self::Output {
         Vec3(self.x() * constant, self.y() * constant, self.z() * constant)
     }
 }
 
-impl Mul<Vec3> for f64 {
+impl Mul<Vec3> for f32 {
     type Output = Vec3;
 
     fn mul(self, v: Vec3) -> Vec3 {
@@ -131,9 +131,9 @@ impl Mul<Vec3> for f64 {
     }
 }
 
-impl Div<f64> for Vec3 {
+impl Div<f32> for Vec3 {
     type Output = Vec3;
-    fn div(self, constant: f64) -> Self::Output {
+    fn div(self, constant: f32) -> Self::Output {
         self * (1.0 / constant)
     }
 }

@@ -14,19 +14,19 @@ use crate::hittable::HittableList;
 use crate::material::{ Dielectric, Lambertian, Material, Metal };
 use crate::sphere::Sphere;
 use crate::vec3::{ Color, Point3 };
-pub use std::f64::{ INFINITY, NEG_INFINITY, consts::PI };
+pub use std::f32::{ INFINITY, NEG_INFINITY, consts::PI };
 use std::sync::Arc;
 
-fn _degrees_to_radians(degrees: f64) -> f64 {
+fn _degrees_to_radians(degrees: f32) -> f32 {
     (degrees * PI) / 180.0
 }
 
-pub fn random_f64() -> f64 {
-    rand::thread_rng().gen()
+pub fn random_f64() -> f32 {
+    rand::random()
 }
 
-pub fn random_f64_range(min: f64, max: f64) -> f64 {
-    rand::thread_rng().gen_range(min..=max)
+pub fn random_f64_range(min: f32, max: f32) -> f32 {
+    rand::random_range(min..=max)
 }
 fn main() {
     let mut world = HittableList::new();

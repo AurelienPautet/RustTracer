@@ -9,12 +9,12 @@ use crate::{
 
 pub struct Sphere {
     center: Point3,
-    radius: f64,
+    radius: f32,
     mat: Arc<dyn Material + Send + Sync>,
 }
 
 impl Sphere {
-    pub fn new(center: Point3, radius: f64, mat: Arc<dyn Material + Send + Sync>) -> Self {
+    pub fn new(center: Point3, radius: f32, mat: Arc<dyn Material + Send + Sync>) -> Self {
         Sphere { center, radius: radius.max(0.0), mat }
     }
 }
@@ -30,7 +30,7 @@ impl Hittable for Sphere {
             return None;
         }
         let sqrtd = discriminant.sqrt();
-        let mut root: f64 = (h - sqrtd) / a;
+        let mut root: f32 = (h - sqrtd) / a;
 
         if !ray_t.surrounds(root) {
             root = (h + sqrtd) / a;

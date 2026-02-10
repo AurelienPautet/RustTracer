@@ -7,14 +7,14 @@ pub struct HitRecord<'a> {
     pub p: Point3,
     pub normal: Vec3,
     pub mat: &'a Arc<dyn Material + Send + Sync>,
-    pub t: f64,
+    pub t: f32,
     pub front_face: bool,
 }
 
 impl<'a> HitRecord<'a> {
     pub fn new(
         p: Point3,
-        t: f64,
+        t: f32,
         ray: &Ray,
         mat: &'a Arc<dyn Material + Send + Sync>,
         outward_normal: Vec3
