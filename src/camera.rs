@@ -206,7 +206,9 @@ impl Camera {
         }
 
         if let Some(rec) = world.hit(ray, Interval::new(0.001, INFINITY)) {
-            let (scattered, attenuation) = rec.mat.scatter(ray, &rec);
+            let Some((scattered, attenuation)) = rec.mat.scatter(ray, &rec) else {
+                return Color::new(0.0, 0.0, 0.0);
+            };
             return attenuation * Self::ray_color(scattered, max_depth - 1, world);
         }
         let unit_direction = ray.direction().to_unit_vector();

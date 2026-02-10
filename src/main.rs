@@ -11,7 +11,7 @@ use rand::Rng;
 
 use crate::camera::Camera;
 use crate::hittable::HittableList;
-use crate::material::{ Lambertian, Metal, Material };
+use crate::material::{ Dielectric, Lambertian, Material, Metal };
 use crate::sphere::Sphere;
 use crate::vec3::{ Color, Point3 };
 pub use std::f64::{ INFINITY, NEG_INFINITY, consts::PI };
@@ -38,9 +38,18 @@ fn main() {
     });
     let material_left: Arc<dyn Material + Send + Sync> = Arc::new(Metal {
         albedo: Color::new(0.8, 0.8, 0.8),
+        fuzziness: 0.2,
     });
     let material_rigth: Arc<dyn Material + Send + Sync> = Arc::new(Metal {
         albedo: Color::new(0.8, 0.6, 0.2),
+        fuzziness: 1.0,
+    });
+
+    let material_front: Arc<dyn Material + Send + Sync> = Arc::new(Dielectric {
+        refraction_index: 1.5,
+    });
+    let material_air_buble: Arc<dyn Material + Send + Sync> = Arc::new(Dielectric {
+        refraction_index: 1.0 / 1.33,
     });
 
     world.add(
@@ -49,8 +58,11 @@ fn main() {
     world.add(
         Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.2), 0.5, Arc::clone(&material_center)))
     );
-    world.add(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, Arc::clone(&material_left))));
+    world.add(
+        Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, Arc::clone(&material_air_buble)))
+    );
     world.add(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, Arc::clone(&material_rigth))));
+    world.add(Box::new(Sphere::new(Point3::new(0.0, 0.0, 3.5), 0.4, Arc::clone(&material_front))));
 
     let cam = Camera::new(16.0 / 9.0, 600, 100);
     cam.render(&world);
