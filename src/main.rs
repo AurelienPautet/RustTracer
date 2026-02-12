@@ -7,8 +7,6 @@ pub mod interval;
 pub mod camera;
 pub mod material;
 
-use rand::Rng;
-
 use crate::camera::Camera;
 use crate::hittable::HittableList;
 use crate::material::{ Dielectric, Lambertian, Material, Metal };
@@ -84,6 +82,6 @@ fn main() {
     });
     world.add(Box::new(Sphere::new(Point3::new(4.0, 1.0, 0.0), 1.0, material3)));
 
-    let cam = Camera::new(16.0 / 9.0, 90.0, 600, 500, 4);
+    let cam = Camera::new(16.0 / 9.0, 20.0, 600, 500, 4);
     cam.render(&world);
 }

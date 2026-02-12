@@ -38,6 +38,15 @@ impl Vec3 {
         -on_unit_sphere
     }
 
+    pub fn random_in_unit_disk() -> Self {
+        loop {
+            let p = Self(random_f32_range(-1.0, 1.0), random_f32_range(-1.0, 1.0), 0.0);
+            if p.length_squared() < 1.0 {
+                return p;
+            }
+        }
+    }
+
     pub fn x(&self) -> f32 {
         self.0
     }

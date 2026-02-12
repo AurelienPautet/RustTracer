@@ -15,8 +15,11 @@ use crate::{
 pub struct Camera {
     aspect_ratio: f32,
     fov: f32,
+    defocus_angle: f32,
+    focus_dist: f32,
+    defocus_disk_u: Vec3,
+    defocus_disk_v: Vec3,
     lookfrom: Point3,
-    focal_length: f32,
     vup: Vec3,
     u: Vec3,
     v: Vec3,
@@ -56,7 +59,10 @@ impl Camera {
         let mut res = Self {
             aspect_ratio,
             fov,
-            focal_length: 1.0,
+            defocus_angle: 0.6,
+            focus_dist: 3.4,
+            defocus_disk_u: ZERO,
+            defocus_disk_v: ZERO,
             lookfrom: ZERO,
             vup: Vec3::new(0.0, 1.0, 0.0),
             u: Vec3::new(1.0, 0.0, 0.0),
@@ -106,7 +112,7 @@ impl Camera {
 
         let theta = _degrees_to_radians(self.fov);
         let h = (theta / 2.0).tan();
-        let viewport_heigth = 2.0 * h * self.focal_length;
+        let viewport_heigth = 2.0 * h * self.focus_dist;
         self.image_height = ((self.image_width as f32) / self.aspect_ratio.max(1.0)) as u16;
         let viewport_width =
             (viewport_heigth * (self.image_width as f32)) / (self.image_height as f32);
@@ -118,8 +124,12 @@ impl Camera {
         self.pixel_delta_v = viewport_v / (self.image_height as f32);
 
         let viewport_upper_left =
-            self.center - self.focal_length * self.w - viewport_u / 2.0 - viewport_v / 2.0;
+            self.center - self.focus_dist * self.w - viewport_u / 2.0 - viewport_v / 2.0;
         self.pixel00_loc = viewport_upper_left + 0.5 * (self.pixel_delta_u + self.pixel_delta_v);
+
+        let defocus_radius = self.focus_dist * _degrees_to_radians(self.defocus_angle / 2.0).tan();
+        self.defocus_disk_u = self.u * defocus_radius;
+        self.defocus_disk_v = self.v * defocus_radius;
     }
 
     pub fn move_camera(&mut self, dir: Direction) {
@@ -180,7 +190,7 @@ impl Camera {
             panic!("{}", e);
         });
 
-        window.set_target_fps(60);
+        window.set_target_fps(200);
         let mut fps = 0;
         let mut full_res_count: u32 = 0;
         while window.is_open() && !window.is_key_down(Key::Escape) {
@@ -209,6 +219,34 @@ impl Camera {
             }
             if window.is_key_down(Key::V) {
                 self.fov = self.fov - 1.0;
+                color_buffer.fill(Color::new(0.0, 0.0, 0.0));
+                full_res_count = 0;
+                self.sample_current = 0;
+                self.update();
+            }
+            if window.is_key_down(Key::G) {
+                self.focus_dist = self.focus_dist + 0.1;
+                color_buffer.fill(Color::new(0.0, 0.0, 0.0));
+                full_res_count = 0;
+                self.sample_current = 0;
+                self.update();
+            }
+            if window.is_key_down(Key::B) {
+                self.focus_dist = self.focus_dist - 0.1;
+                color_buffer.fill(Color::new(0.0, 0.0, 0.0));
+                full_res_count = 0;
+                self.sample_current = 0;
+                self.update();
+            }
+            if window.is_key_down(Key::H) {
+                self.defocus_angle = self.defocus_angle - 0.1;
+                color_buffer.fill(Color::new(0.0, 0.0, 0.0));
+                full_res_count = 0;
+                self.sample_current = 0;
+                self.update();
+            }
+            if window.is_key_down(Key::N) {
+                self.defocus_angle = self.defocus_angle + 0.1;
                 color_buffer.fill(Color::new(0.0, 0.0, 0.0));
                 full_res_count = 0;
                 self.sample_current = 0;
@@ -254,6 +292,12 @@ impl Camera {
             if self.sample_current < self.sample_max {
                 print!("\r sample:{} fps:{}              ", self.sample_current, fps);
                 io::stdout().flush().unwrap();
+                let title =
+                    String::from("RustTracer, fps :") +
+                    &fps.to_string() +
+                    &String::from(" sample :") +
+                    &self.sample_current.to_string();
+                window.set_title(&title);
 
                 let ratio = self.sample_ratio as usize;
                 let w = self.image_width as usize;
@@ -361,8 +405,18 @@ impl Camera {
             self.pixel00_loc +
             ((x as f32) + offset.x()) * self.pixel_delta_u +
             ((y as f32) + offset.y()) * self.pixel_delta_v;
-        let ray_direction = pixel_center - self.center;
-        Ray::new(self.center, ray_direction)
+        let ray_origin = if self.defocus_angle <= 0.0 {
+            self.center
+        } else {
+            self.defocus_disk_sample()
+        };
+        let ray_direction = pixel_center - ray_origin;
+        Ray::new(ray_origin, ray_direction)
+    }
+
+    fn defocus_disk_sample(&self) -> Vec3 {
+        let p = Vec3::random_in_unit_disk();
+        self.center + p.x() * self.defocus_disk_u + p.y() * self.defocus_disk_v
     }
 
     fn sample_square(&self) -> Vec3 {
