@@ -1,7 +1,7 @@
 use crate::{ hittable::HitRecord, random_f32, ray::Ray, vec3::{ Color, Vec3, dot } };
 
 pub trait Material {
-    fn scatter(&self, r_in: Ray, rec: &HitRecord) -> Option<(Ray, Color)>;
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)>;
 }
 
 pub struct Lambertian {
@@ -9,7 +9,7 @@ pub struct Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, r_in: Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let mut scatter_direction = rec.normal + Vec3::random_unit_vector();
         if scatter_direction.near_zero() {
             scatter_direction = rec.normal;
@@ -24,7 +24,7 @@ pub struct Metal {
 }
 
 impl Material for Metal {
-    fn scatter(&self, r_in: Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let mut reflected = r_in.direction().reflect(rec.normal);
         reflected = reflected.to_unit_vector() + self.fuzziness * Vec3::random_unit_vector();
         let scattered: Ray = Ray::new(rec.p, reflected);
@@ -41,7 +41,7 @@ pub struct Dielectric {
 }
 
 impl Material for Dielectric {
-    fn scatter(&self, r_in: Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let ri = if rec.front_face { 1.0 / self.refraction_index } else { self.refraction_index };
 
         let unit_direction = r_in.direction().to_unit_vector();

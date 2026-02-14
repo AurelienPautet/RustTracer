@@ -26,7 +26,7 @@ impl<'a> HitRecord<'a> {
 }
 
 pub trait Hittable: Send + Sync {
-    fn hit(&self, ray: Ray, ray_t: Interval) -> Option<HitRecord>;
+    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord>;
 }
 
 pub struct HittableList {
@@ -34,12 +34,12 @@ pub struct HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, ray: Ray, ray_t: Interval) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let mut rec = None;
         let mut closest_so_far = ray_t.max;
 
         for object in &self.objects {
-            if let Some(r) = object.hit(ray, Interval { min: ray_t.min, max: closest_so_far }) {
+            if let Some(r) = object.hit(&ray, Interval { min: ray_t.min, max: closest_so_far }) {
                 closest_so_far = r.t;
                 rec = Some(r);
             }

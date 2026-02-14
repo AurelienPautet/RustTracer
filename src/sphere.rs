@@ -4,6 +4,7 @@ use crate::{
     hittable::{ HitRecord, Hittable },
     interval::Interval,
     material::Material,
+    ray::Ray,
     vec3::{ Point3, dot },
 };
 
@@ -20,7 +21,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, ray: crate::ray::Ray, ray_t: Interval) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let oc = self.center - ray.origin();
         let a = ray.direction().length_squared();
         let h = dot(&ray.direction(), &oc);
