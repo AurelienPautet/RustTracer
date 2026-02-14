@@ -73,7 +73,7 @@ impl Scene {
         });
         world.add(Box::new(Sphere::new(Point3::new(4.0, 1.0, 0.0), 1.0, material3)));
 
-        let cam = Camera::new(20.0, size, 500, 4);
+        let cam = Camera::new(20.0, size, 2000, 4);
 
         Scene {
             camera: cam,
@@ -159,7 +159,7 @@ impl Scene {
         });
         world.add(Box::new(Sphere::new(Point3::new(0.0, 2.0, -8.0), 2.0, mirror)));
 
-        let cam = Camera::new(20.0, size, 500, 4);
+        let cam = Camera::new(20.0, size, 2000, 4);
 
         Scene {
             camera: cam,
@@ -237,7 +237,7 @@ impl Scene {
         });
         world.add(Box::new(Sphere::new(Point3::new(0.0, 0.8, -6.0), 1.5, large_frosted)));
 
-        let cam = Camera::new(20.0, size, 500, 4);
+        let cam = Camera::new(20.0, size, 2000, 4);
 
         Scene {
             camera: cam,

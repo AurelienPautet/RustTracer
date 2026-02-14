@@ -1,6 +1,6 @@
 use std::ops::{ Neg, Sub, Add, Mul, Div };
 
-use crate::{ random_f32, random_f32_range };
+use crate::{ interval::Interval, random_f32, random_f32_range };
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vec3(f32, f32, f32);
@@ -84,6 +84,12 @@ impl Vec3 {
         let r_out_parallel = -(1.0 - r_out_perp.length_squared()).abs().sqrt() * n;
         r_out_parallel + r_out_perp
     }
+
+    pub fn clamp(mut self, interval: Interval) {
+        self.0 = interval.clamp(self.0);
+        self.1 = interval.clamp(self.1);
+        self.2 = interval.clamp(self.2);
+    }
 }
 
 pub fn dot(v1: &Vec3, v2: &Vec3) -> f32 {
@@ -144,5 +150,23 @@ impl Div<f32> for Vec3 {
     type Output = Vec3;
     fn div(self, constant: f32) -> Self::Output {
         self * (1.0 / constant)
+    }
+}
+
+impl Color {
+    pub fn to_u32(&self) -> u32 {
+        let intensity = Interval::new(0.0, 0.999);
+        let r = (255.99 * intensity.clamp(self.x().sqrt())) as u32;
+        let g = (255.99 * intensity.clamp(self.y().sqrt())) as u32;
+        let b = (255.99 * intensity.clamp(self.z().sqrt())) as u32;
+        (r << 16) | (g << 8) | b
+    }
+
+    pub fn from_u32(hex: u32) -> Self {
+        Self(
+            (((hex >> 16) & 0xff) as f32) / 255.0,
+            (((hex >> 8) & 0xff) as f32) / 255.0,
+            ((hex & 0xff) as f32) / 255.0
+        )
     }
 }
