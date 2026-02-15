@@ -1,6 +1,12 @@
 use std::sync::Arc;
 
-use crate::{ interval::Interval, material::Material, ray::Ray, vec3::{ Point3, Vec3, dot } };
+use crate::{
+    aabb::Aabb,
+    interval::Interval,
+    material::Material,
+    ray::Ray,
+    vec3::{ Point3, Vec3, dot },
+};
 
 #[derive(Clone)]
 pub struct HitRecord<'a> {
@@ -27,10 +33,12 @@ impl<'a> HitRecord<'a> {
 
 pub trait Hittable: Send + Sync {
     fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord>;
+    fn bounding_box(&self) -> &Aabb;
 }
 
 pub struct HittableList {
     objects: Vec<Box<dyn Hittable>>,
+    bbox: Aabb,
 }
 
 impl Hittable for HittableList {
@@ -46,20 +54,29 @@ impl Hittable for HittableList {
         }
         rec
     }
+    fn bounding_box(&self) -> &Aabb {
+        &self.bbox
+    }
 }
 
 impl HittableList {
     pub fn new() -> Self {
         HittableList {
             objects: Vec::new(),
+            bbox: Aabb::new(),
         }
     }
 
     pub fn add(&mut self, object: Box<dyn Hittable>) {
+        self.bbox = Aabb::new_from_aabbs(&self.bbox, object.bounding_box());
         self.objects.push(object);
     }
 
     pub fn clear(&mut self) {
         self.objects.clear();
+    }
+
+    pub fn into_objects(self) -> Vec<Box<dyn Hittable>> {
+        self.objects
     }
 }

@@ -2,12 +2,7 @@ use std::f32::INFINITY;
 use rayon::prelude::*;
 use crate::vec3::cross;
 use crate::{ _degrees_to_radians, Size, random_f32 };
-use crate::{
-    hittable::{ Hittable, HittableList },
-    interval::Interval,
-    vec3::{ Color, Point3, Vec3 },
-    ray::Ray,
-};
+use crate::{ hittable::Hittable, interval::Interval, vec3::{ Color, Point3, Vec3 }, ray::Ray };
 
 #[derive(Clone, Copy)]
 struct RayGenParams {
@@ -194,7 +189,7 @@ impl Camera {
         self.update();
     }
 
-    pub fn render(&mut self, world: &HittableList, buffer: &mut Vec<u32>) {
+    pub fn render(&mut self, world: &dyn Hittable, buffer: &mut Vec<u32>) {
         if self.sample_current < self.sample_max {
             let ratio = self.sample_ratio as usize;
             let block_size: usize = (ratio >> (self.sample_current as usize)).max(1);
@@ -295,7 +290,7 @@ impl Camera {
         }
     }
 
-    pub fn ray_color(ray: &Ray, max_depth: u16, world: &HittableList) -> Color {
+    pub fn ray_color(ray: &Ray, max_depth: u16, world: &dyn Hittable) -> Color {
         if max_depth <= 0 {
             return Color::new(0.0, 0.0, 0.0);
         }

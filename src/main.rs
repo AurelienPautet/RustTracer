@@ -8,6 +8,8 @@ pub mod material;
 pub mod scene;
 pub mod ui;
 pub mod save;
+pub mod aabb;
+pub mod bvh;
 
 use crate::camera::Direction;
 use crate::ui::Ui;
@@ -91,7 +93,9 @@ fn main() {
     let mut scenes = vec![
         Scene::create_scene1(size),
         Scene::create_scene2(size),
-        Scene::create_scene3(size)
+        Scene::create_scene3(size),
+        Scene::create_scene4(size),
+        Scene::create_scene5(size)
     ];
     let scenes_len = scenes.len();
     let mut current_scene_idx = 0;
@@ -190,13 +194,13 @@ fn main() {
             needs_scene_change = false;
         }
 
-        scene.camera.render(&scene.world, &mut window_buffer.content);
+        scene.camera.render(scene.world.as_ref(), &mut window_buffer.content);
 
         let elapsed_ms = start.elapsed().as_millis();
         let fps = if elapsed_ms > 0 { 1000 / (elapsed_ms as u128) } else { 0 };
 
         let black = Color::new(0.0, 0.0, 0.0);
-        let ui_scale = ((size.w.min(size.h) as f32) / 600.0).max(1.0) as u16;
+        let ui_scale = ((size.w.min(size.h) as f32) / 400.0).max(1.0) as u16;
         let ui_opacity = 0.95;
         let ui = Ui {
             scale: ui_scale,
@@ -204,67 +208,67 @@ fn main() {
             lines_content: vec![
                 TextString {
                     content: "RustTracer".to_string(),
-                    font_size: 4,
+                    font_size: 3,
                     color: black,
                     opacity: ui_opacity,
                 },
                 TextString {
                     content: format!("fps: {}", fps),
-                    font_size: 3,
+                    font_size: 2,
                     color: black,
                     opacity: ui_opacity,
                 },
                 TextString {
                     content: format!("sample : {}", scene.camera.sample_current.to_string()),
-                    font_size: 3,
+                    font_size: 2,
                     color: black,
                     opacity: ui_opacity,
                 },
                 TextString {
                     content: " ".to_string(),
-                    font_size: 2,
+                    font_size: 1,
                     color: black,
                     opacity: ui_opacity,
                 },
                 TextString {
                     content: "WASD: Movement".to_string(),
-                    font_size: 2,
+                    font_size: 1,
                     color: black,
                     opacity: ui_opacity,
                 },
                 TextString {
                     content: format!("F/V: FOV {:.2}", scene.camera.fov),
-                    font_size: 2,
+                    font_size: 1,
                     color: black,
                     opacity: ui_opacity,
                 },
                 TextString {
                     content: format!("G/B: Focus Distance {:.2}", scene.camera.focus_dist),
-                    font_size: 2,
+                    font_size: 1,
                     color: black,
                     opacity: ui_opacity,
                 },
                 TextString {
                     content: format!("H/N: Defocus Angle {:.2}", scene.camera.defocus_angle),
-                    font_size: 2,
+                    font_size: 1,
                     color: black,
                     opacity: ui_opacity,
                 },
                 TextString {
                     content: "Space: Change Scene".to_string(),
-                    font_size: 2,
+                    font_size: 1,
                     color: black,
                     opacity: ui_opacity,
                 },
                 TextString {
                     content: "P: save current image to file".to_string(),
-                    font_size: 2,
+                    font_size: 1,
                     color: black,
                     opacity: ui_opacity,
                 },
                 TextString {
                     content: "U: Toggle ui".to_string(),
-                    font_size: 2,
+                    font_size: 1,
                     color: black,
                     opacity: ui_opacity,
                 }

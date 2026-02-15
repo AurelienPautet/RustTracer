@@ -1,22 +1,30 @@
 use std::sync::Arc;
 
 use crate::{
+    aabb::Aabb,
     hittable::{ HitRecord, Hittable },
     interval::Interval,
     material::Material,
     ray::Ray,
-    vec3::{ Point3, dot },
+    vec3::{ Point3, Vec3, dot },
 };
 
 pub struct Sphere {
     center: Point3,
     radius: f32,
     mat: Arc<dyn Material + Send + Sync>,
+    bbox: Aabb,
 }
 
 impl Sphere {
     pub fn new(center: Point3, radius: f32, mat: Arc<dyn Material + Send + Sync>) -> Self {
-        Sphere { center, radius: radius.max(0.0), mat }
+        let rvec = Vec3::new(radius, radius, radius);
+        Sphere {
+            center,
+            radius: radius.max(0.0),
+            mat,
+            bbox: Aabb::new_from_points(&(center - rvec), &(center + rvec)),
+        }
     }
 }
 
@@ -44,5 +52,8 @@ impl Hittable for Sphere {
         let p = ray.at(t);
         let outward_normal = (p - self.center) / self.radius;
         Some(HitRecord::new(p, t, &ray, &self.mat, outward_normal))
+    }
+    fn bounding_box(&self) -> &Aabb {
+        &self.bbox
     }
 }
