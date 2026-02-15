@@ -50,7 +50,7 @@ pub struct Camera {
     u: Vec3,
     v: Vec3,
     w: Vec3,
-    image_size: Size,
+    pub image_size: Size,
     center: Point3,
     pixel00_loc: Point3,
     pixel_delta_u: Vec3,
@@ -62,7 +62,7 @@ pub struct Camera {
     yaw: f32,
     pitch: f32,
     sample_ratio: u16,
-    color_buffer: Vec<Color>,
+    pub color_buffer: Vec<Color>,
     full_res_count: u32,
 }
 

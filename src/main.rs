@@ -7,6 +7,7 @@ pub mod camera;
 pub mod material;
 pub mod scene;
 pub mod ui;
+pub mod save;
 
 use crate::camera::Direction;
 use crate::ui::Ui;
@@ -138,6 +139,7 @@ fn main() {
             }
         }
         let scene = &mut scenes[current_scene_idx];
+
         if window.is_key_down(Key::W) {
             scene.camera.move_camera(Direction::Forward);
         }
@@ -149,6 +151,9 @@ fn main() {
         }
         if window.is_key_down(Key::D) {
             scene.camera.move_camera(Direction::Right);
+        }
+        if window.is_key_pressed(Key::P, minifb::KeyRepeat::No) {
+            save::save_image(&scene.camera);
         }
         if window.is_key_down(Key::F) {
             scene.camera.fov = scene.camera.fov + 1.0;
@@ -247,6 +252,12 @@ fn main() {
                 },
                 TextString {
                     content: "Space: Change Scene".to_string(),
+                    font_size: 2,
+                    color: black,
+                    opacity: ui_opacity,
+                },
+                TextString {
+                    content: "P: save current image to file".to_string(),
                     font_size: 2,
                     color: black,
                     opacity: ui_opacity,
